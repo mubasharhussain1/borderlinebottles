@@ -1,0 +1,30 @@
+{
+  "name": "shopify-synq",
+  "version": "1.0.0",
+  "description": "LiquorConnect Catalog Ingestion and Shopify Differential Sync Engine",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "scheduler": "node src/scheduler.js",
+    "sync:manual": "node src/scheduler.js --now",
+    "report": "node report.mjs",
+    "scrape:test": "node src/scraper/test_scraper.js",
+    "shopify:test": "node src/shopify/test_connection.js",
+    "sync:sample": "node src/sync/sync_engine.js"
+  },
+  "keywords": [
+    "shopify",
+    "scraper",
+    "liquorconnect",
+    "sync"
+  ],
+  "author": "Mubashar Hussain",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
+    "csv-parse": "^7.0.3",
+    "dotenv": "^16.4.5"
+  }
+}

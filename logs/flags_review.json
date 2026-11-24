@@ -1,0 +1,106 @@
+[
+  {
+    "timestamp": "2026-11-18T19:06:42.027Z",
+    "sku": "In-Stock\"",
+    "title": "Andres Baby Duck",
+    "cost": 50,
+    "reason": "Below 5% profit floor (Candidate $10.44 < Floor $52.5)"
+  },
+  {
+    "timestamp": "2026-11-18T19:06:58.164Z",
+    "sku": "In-Stock\"",
+    "title": "Dubonnet Rouge",
+    "cost": 50,
+    "reason": "Below 5% profit floor (Candidate $18.29 < Floor $52.5)"
+  },
+  {
+    "timestamp": "2026-11-18T19:16:40.066Z",
+    "sku": "240",
+    "title": "Smirnoff",
+    "cost": 13.09,
+    "zynPrice": 13.99,
+    "bswPrice": null,
+    "reason": "Below 5% profit floor (Candidate $13.29 < Floor $13.74)"
+  },
+  {
+    "timestamp": "2026-11-18T19:32:10.978Z",
+    "sku": "240",
+    "title": "Smirnoff",
+    "cost": 13.09,
+    "zynPrice": 13.99,
+    "bswPrice": null,
+    "reason": "Below 5% profit floor (Candidate $13.29 < Floor $13.74)"
+  },
+  {
+    "timestamp": "2026-11-18T20:34:47.816Z",
+    "sku": "240",
+    "title": "Smirnoff",
+    "cost": 13.09,
+    "zynPrice": 13.99,
+    "bswPrice": null,
+    "reason": "Below 5% profit floor (Candidate $13.29 < Floor $13.74)"
+  },
+  {
+    "timestamp": "2026-11-18T22:40:55.191Z",
+    "sku": "240",
+    "title": "Smirnoff",
+    "cost": 13.09,
+    "zynPrice": 13.99,
+    "bswPrice": null,
+    "reason": "Below 5% profit floor (Candidate $13.29 < Floor $13.74)"
+  },
+  {
+    "timestamp": "2026-11-19T22:29:37.819Z",
+    "sku": "240",
+    "title": "Smirnoff 375ml",
+    "cost": 13.09,
+    "competitorPrice": 13.99,
+    "floorPrice": 13.74,
+    "reason": "Below 5% profit floor (Candidate $13.29 < Floor $13.74)"
+  },
+  {
+    "timestamp": "2026-11-19T22:30:51.764Z",
+    "sku": "240",
+    "title": "Smirnoff 375ml",
+    "cost": 13.09,
+    "competitorPrice": 13.99,
+    "floorPrice": 13.74,
+    "reason": "Below 5% profit floor (Candidate $13.29 < Floor $13.74)"
+  },
+  {
+    "timestamp": "2026-11-19T23:15:32.999Z",
+    "sku": "7617",
+    "title": "Chivas Regal 12 Year Old - 750 ml",
+    "cost": 42.17,
+    "competitorPrice": 43,
+    "floorPrice": 44.28,
+    "reason": "Below 5% profit floor (Candidate $40.85 < Floor $44.28)"
+  },
+  {
+    "timestamp": "2026-11-21T08:20:37.391Z",
+    "sku": "109711",
+    "title": "Chivas Royal Salute 21 Year Old",
+    "cost": 200,
+    "zynPrice": 194,
+    "bswPrice": 150,
+    "reason": "Below 5% profit floor (Candidate $142.5 < Floor $210)"
+  },
+  {
+    "timestamp": "2026-11-21T08:23:44.916Z",
+    "sku": "109711",
+    "title": "Chivas Royal Salute 21 Year Old",
+    "cost": 200,
+    "zynPrice": 194,
+    "bswPrice": 150,
+    "reason": "Below 5% profit floor (Candidate $142.5 < Floor $210)"
+  },
+  {
+    "timestamp": "2026-11-21T08:32:15.387Z",
+    "sku": "109711",
+    "title": "Chivas Royal Salute 21 Year Old",
+    "cost": 200,
+    "zynPrice": 194,
+    "bswPrice": 150,
+    "reason": "Below 5% profit floor (Candidate $142.5 < Floor $210)"
+  }
+]
