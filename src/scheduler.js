@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
-import { loadCompetitorIndices, syncProductToShopify } from './sync/sync_engine.js';
+import { loadCompetitorIndices, syncProductToShopify, findShopifyProductsBySkuBatch } from './sync/sync_engine.js';
 import { logSyncSummary, logSyncError } from './utils/logger.js';
 
 /**
@@ -40,50 +40,98 @@ export async function runFullSync(batchLimit = null) {
     records = records.slice(0, batchLimit);
   }
 
-  console.log(`📦 Total Products to Process: ${records.length}\n`);
+  // 2. Read Master Products & State Checkpoint
+  const stateFile = path.resolve('sync_state.json');
+  let startIndex = 0;
+  if (fs.existsSync(stateFile)) {
+    try {
+      const state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+      if (typeof state.lastIndex === 'number' && state.lastIndex < records.length) {
+        startIndex = state.lastIndex;
+        console.log(`♻️ Resuming Sync from Checkpoint: Product [${startIndex + 1}/${records.length}]`);
+      }
+    } catch (e) {}
+  }
+
+  console.log(`📦 Total Products to Process: ${records.length} (Starting from #${startIndex + 1})\n`);
 
   let updatedCount = 0;
   let skippedCount = 0;
   let errorCount = 0;
 
-  for (let i = 0; i < records.length; i++) {
-    const r = records[i];
-    const sku = (r['Variant SKU'] || '').trim();
-    const title = (r['Title'] || '').trim();
-    const cost = (r['Variant Compare At Price'] || '0').trim();
-    const tags = r['Tags'] || '';
-    const isStock = tags.includes('In-Stock');
+  const BATCH_SIZE = 10; // Balanced chunking: 10 products per batch (fits Shopify REST 2 calls/sec limit)
 
-    if (!sku) {
-      skippedCount++;
-      continue;
+  for (let i = startIndex; i < records.length; i += BATCH_SIZE) {
+    const chunk = records.slice(i, i + BATCH_SIZE);
+
+    // 1. Extract valid SKUs in this chunk
+    const validSkus = chunk
+      .map(r => (r['Variant SKU'] || '').trim())
+      .filter(s => s.length > 0);
+
+    // 2. Multi-Lookup in single Shopify GraphQL call
+    let productMap = {};
+    if (validSkus.length > 0) {
+      productMap = await findShopifyProductsBySkuBatch(validSkus);
     }
 
-    const item = {
-      SKU: sku,
-      Name: title,
-      Cost: cost,
-      Size: '',
-      AvailabilityDisplay: isStock ? 'In Stock' : 'Out of Stock'
-    };
+    // 3. Process the chunk in parallel using preloaded Shopify data
+    await Promise.all(chunk.map(async (r, offset) => {
+      const currentIndex = i + offset;
+      const sku = (r['Variant SKU'] || '').trim();
+      const title = (r['Title'] || '').trim();
+      const cost = (r['Variant Compare At Price'] || '0').trim();
+      const tags = r['Tags'] || '';
+      const isStock = tags.includes('In-Stock');
 
-    try {
-      const res = await syncProductToShopify(item, zynIndex, bswIndex);
-      if (res) {
-        updatedCount++;
-      } else {
+      if (!sku) {
         skippedCount++;
+        return;
       }
-    } catch (err) {
-      errorCount++;
-      logSyncError({ sku, title, error: err.message });
-    }
 
-    // Rate-limiting delay for Shopify API compliance
-    if ((i + 1) % 50 === 0) {
-      console.log(`⏳ Progress: [${i + 1}/${records.length}] products processed...`);
-      await new Promise(r => setTimeout(r, 1000));
-    }
+      const item = {
+        SKU: sku,
+        Name: title,
+        Cost: cost,
+        Size: '',
+        AvailabilityDisplay: isStock ? 'In Stock' : 'Out of Stock'
+      };
+
+      const preloaded = productMap[sku] || null;
+
+      try {
+        const res = await syncProductToShopify(item, zynIndex, bswIndex, preloaded);
+        if (res) {
+          updatedCount++;
+        } else {
+          skippedCount++;
+        }
+      } catch (err) {
+        errorCount++;
+        logSyncError({ sku, title, error: err.message });
+      }
+    }));
+
+    // Save checkpoint after chunk
+    const nextIdx = Math.min(i + BATCH_SIZE, records.length);
+    saveCheckpoint(nextIdx);
+
+    // High-speed visual progress counter
+    console.log(`⚡ [Speed Sync] Processed [${nextIdx}/${records.length}] products... (Updated: ${updatedCount}, Skipped: ${skippedCount})`);
+
+    // Polite 800ms pause to stay smoothly under Shopify REST API rate limits
+    await new Promise(r => setTimeout(r, 800));
+  }
+
+  // Once finished, reset checkpoint to 0 for next scheduled run
+  if (fs.existsSync(stateFile)) {
+    fs.unlinkSync(stateFile);
+  }
+
+  function saveCheckpoint(idx) {
+    try {
+      fs.writeFileSync(stateFile, JSON.stringify({ lastIndex: idx, updatedAt: new Date().toISOString() }, null, 2), 'utf8');
+    } catch (e) {}
   }
 
   const durationSec = +((Date.now() - startTime) / 1000).toFixed(1);

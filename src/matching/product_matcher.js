@@ -59,7 +59,9 @@ export function buildCatalogIndex(catalogArrayOrObj, sourceName = 'zyn') {
     const barcode = item.barcode ? item.barcode.toString().trim() : '';
     const sku = item.sku ? item.sku.toString().trim() : '';
     const title = item.title ? item.title.trim() : '';
-    const size = normalizeSize(item.size || (title.match(/\b(\d+(?:\.\d+)?\s*(?:ml|l|oz))\b/i)?.[0]));
+    // ✅ FIX: Improved size extraction — catches "4L Bag in Box", "1.5L Magnum", "750ml", "200mL" from title
+    const sizeFromTitle = title.match(/\b(\d+(?:\.\d+)?\s*(?:ml|l|oz))\b/i)?.[0] || '';
+    const size = normalizeSize(item.size || sizeFromTitle);
 
     const entry = {
       source: sourceName,
@@ -129,9 +131,17 @@ function findMatchInCatalog(lcProduct, index) {
     }
   }
 
-  // 3. Title + Exact Size Match (Fuzzy Last Resort)
+  // 3. Title + Size Match — Exact first, then word-overlap fuzzy (handles typos like "Etstes" vs "Estates")
   if (lcCleanTitle) {
+    // Extract meaningful keywords from LC title (ignore common filler words)
+    const STOP_WORDS = new Set(['bag','in','box','can','bottle','pack','case','magnum','reserve','estates','family','vineyards','etstes','proprietors','limited']);
+    const lcWords = lcCleanTitle.split(' ').filter(w => w.length > 2 && !STOP_WORDS.has(w));
+
+    let bestMatch = null;
+    let bestScore = 0;
+
     for (const item of index.byTitle) {
+      // 3a. Exact title match
       if (item.clean === lcCleanTitle) {
         if (!lcSize || !item.size || lcSize === item.size) {
           return {
@@ -145,13 +155,15 @@ function findMatchInCatalog(lcProduct, index) {
             candidate: item.entry
           };
         }
-      } else if (lcCleanTitle.length > 5 && (item.clean.includes(lcCleanTitle) || lcCleanTitle.includes(item.clean))) {
-        // Size must strictly match for fuzzy
+      }
+
+      // 3b. Substring containment (original logic)
+      if (lcCleanTitle.length > 5 && (item.clean.includes(lcCleanTitle) || lcCleanTitle.includes(item.clean))) {
         if (lcSize && item.size && lcSize === item.size) {
           return {
             matched: true,
             matchedBy: 'title_fuzzy',
-            flagForReview: true, // MUST flag for review as per requirement
+            flagForReview: true,
             price: item.entry.price,
             weightGrams: item.entry.weightGrams,
             available: item.entry.available,
@@ -160,6 +172,32 @@ function findMatchInCatalog(lcProduct, index) {
           };
         }
       }
+
+      // 3c. Word-overlap score — handles typos, "Etstes" vs "Estates", extra words like "Bag in Box"
+      // Requires: same size + at least 60% keyword word overlap
+      if (lcSize && item.size && lcSize === item.size && lcWords.length >= 2) {
+        const itemWords = item.clean.split(' ').filter(w => w.length > 2 && !STOP_WORDS.has(w));
+        const matchedWords = lcWords.filter(w => itemWords.some(iw => iw === w || (iw.length > 4 && w.length > 4 && (iw.startsWith(w.slice(0,4)) || w.startsWith(iw.slice(0,4))))));
+        const score = matchedWords.length / Math.max(lcWords.length, 1);
+        if (score >= 0.6 && score > bestScore) {
+          bestScore = score;
+          bestMatch = item;
+        }
+      }
+    }
+
+    // Return best word-overlap match if found
+    if (bestMatch) {
+      return {
+        matched: true,
+        matchedBy: 'title_word_overlap',
+        flagForReview: true, // flag since it's fuzzy
+        price: bestMatch.entry.price,
+        weightGrams: bestMatch.entry.weightGrams,
+        available: bestMatch.entry.available,
+        image: bestMatch.entry.image,
+        candidate: bestMatch.entry
+      };
     }
   }
 

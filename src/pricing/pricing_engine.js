@@ -45,7 +45,8 @@ export function calculatePrice(lcCost, zynPrice = null, zynInStock = false, bswP
     const floorPrice = +(cost * 1.05).toFixed(2); // 5% minimum profit floor
 
     // Jevon client requirement: Exact 14% off regular competitor price (ZYN priority)
-    const p14 = +(competitorPrice * 0.86).toFixed(2);
+    // ✅ Use Math.floor to ensure discount >= 14.00% so Shopify theme badge displays full 14% (not 13%)
+    const p14 = +(Math.floor(competitorPrice * 0.86 * 100) / 100).toFixed(2);
     if (p14 >= floorPrice) {
       return {
         finalPrice: p14,

@@ -21,6 +21,7 @@ export async function shopifyGraphQL(query, variables = {}) {
       endpoint,
       { query, variables },
       {
+        timeout: 25000,
         headers: {
           'Content-Type': 'application/json',
           'X-Shopify-Access-Token': accessToken,
